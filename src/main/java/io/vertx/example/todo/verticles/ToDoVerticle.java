@@ -175,13 +175,14 @@ public class ToDoVerticle extends AbstractVerticle {
 
 
     private void clearToDo(RoutingContext context) {
-        client.flushdb(event -> {
-            if (event.succeeded() && event.result().equals("OK")) {
-                context.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code())
-                        .end();
-            } else {
-                context.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
-                        .end(Json.encode(new ArrayList<>()));
+        client.del(KEYS, delEvent -> {
+            if (delEvent.succeeded()) {
+                client.flushdb(flushdbEvent -> {
+                    if (flushdbEvent.succeeded() && flushdbEvent.result().equals("OK")) {
+                        context.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code())
+                                .end();
+                    }
+                });
             }
         });
 
@@ -193,8 +194,8 @@ public class ToDoVerticle extends AbstractVerticle {
     private void deleteToDoWithId(RoutingContext context) {
         String toDoId = context.request().getParam("id");
         client.multi(multiEvent ->
-                client.del(toDoId, event ->
-                        client.lrem(KEYS, 1, toDoId, lremEvent ->
+                client.lrem(KEYS, 1, toDoId, lremEvent ->
+                        client.del(toDoId, event ->
                                 client.exec(execEvent -> {
                                     JsonArray result = execEvent.result();
                                     if (execEvent.succeeded() && result.getInteger(0) == 1 && result.getInteger(1) == 1)
