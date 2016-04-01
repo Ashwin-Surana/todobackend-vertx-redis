@@ -65,25 +65,25 @@ public class ToDoVerticle extends AbstractVerticle {
 		Integer port = Integer.getInteger("http.port");
 		port = (port == null) ? 8000 : port;
 		vertx.createHttpServer()
-				.requestHandler(router::accept)
-				.listen(port, System.getProperty("http.address", "0.0.0.0"));
+			 .requestHandler(router::accept)
+			 .listen(port, System.getProperty("http.address", "0.0.0.0"));
 	}
 
 
 	private void setupCORS() {
 		Set<HttpMethod> toDoUrlMethodSet = new HashSet<>(Arrays.asList(HttpMethod.GET,
-				HttpMethod.DELETE, HttpMethod.POST, HttpMethod.PATCH, HttpMethod.OPTIONS));
+			HttpMethod.DELETE, HttpMethod.POST, HttpMethod.PATCH, HttpMethod.OPTIONS));
 
 		Set<HttpMethod> toDoIdUrlMethodSet = new HashSet<>(Arrays.asList(HttpMethod.GET,
-				HttpMethod.DELETE, HttpMethod.PATCH, HttpMethod.OPTIONS, HttpMethod.PUT));
+			HttpMethod.DELETE, HttpMethod.PATCH, HttpMethod.OPTIONS, HttpMethod.PUT));
 
 		router.route(TODO_URL).handler(CorsHandler.create("*")
-				.allowedMethods(toDoUrlMethodSet)
-				.allowedHeader("Content-Type"));
+												  .allowedMethods(toDoUrlMethodSet)
+												  .allowedHeader("Content-Type"));
 
 		router.route(TODO_ID_URL).handler(CorsHandler.create("*")
-				.allowedMethods(toDoIdUrlMethodSet)
-				.allowedHeader("Content-Type"));
+													 .allowedMethods(toDoIdUrlMethodSet)
+													 .allowedHeader("Content-Type"));
 	}
 
 	/*
@@ -103,23 +103,21 @@ public class ToDoVerticle extends AbstractVerticle {
 					String index = incrEvent.result().toString();
 					item.setUrl(item.getUrl() + "/" + index);
 					client.multi(multiEvent ->
-							//Insert the todoItem
-							client.hmset(index, ToDoItem.toJsonObject(item), hmsetEvent ->
-									//Maintain a list of index
-									client.rpush(KEYS, index, rpushEvent ->
-											client.exec(event -> {
-												if (event.succeeded())
-													response.setStatusCode(HttpResponseStatus.CREATED.code())
-															.putHeader("content-type", "application/json; charset=utf-8")
-															.end(Json.encode(item));
-												else {
-													response.setStatusCode(HttpResponseStatus.NO_CONTENT.code())
-															.end();
-													logError("Todo creation failed.", event.cause());
-												}
-											})
-									)
-							)
+						//Insert the todoItem
+						client.hmset(index, ToDoItem.toJsonObject(item), hmsetEvent ->
+							//Maintain a list of index
+							client.rpush(KEYS, index, rpushEvent -> client.exec(event -> {
+								if (event.succeeded())
+									response.setStatusCode(HttpResponseStatus.CREATED.code())
+											.putHeader("content-type", "application/json; charset=utf-8")
+											.end(Json.encode(item));
+								else {
+									response.setStatusCode(HttpResponseStatus.NO_CONTENT.code())
+											.end();
+									logError("Todo creation failed.", event.cause());
+								}
+							}))
+						)
 					);
 				} else {
 					response.setStatusCode(HttpResponseStatus.NO_CONTENT.code())
@@ -136,21 +134,21 @@ public class ToDoVerticle extends AbstractVerticle {
 
 	private void getAllToDo(RoutingContext context) {
 		client.lrange(KEYS, 0, -1, lrangeEvent ->
-				RedisUtils.getHashes(client, lrangeEvent.result().getList(), jsonArray ->
-						context.response()
-								.setStatusCode(HttpResponseStatus.OK.code())
-								.putHeader("content-type", "application/json; charset=utf-8")
-								/*
-								 * Apparently boolean and integer values in jsonArray are as strings, needs type conversion,
-								 * hence we deserialize it to List<ToDoItem> and encode it as JSON!
-							     * They get type casted automatically.
-								 */
-								.end(Json.encode(jsonArray.getList()
-										.stream()
-										.map(element -> Json.decodeValue(element.toString(), ToDoItem.class))
-										.collect(Collectors.toList()))
-								)
-				)
+			RedisUtils.getHashes(client, lrangeEvent.result().getList(), jsonArray ->
+				context.response()
+					   .setStatusCode(HttpResponseStatus.OK.code())
+					   .putHeader("content-type", "application/json; charset=utf-8")
+						/*
+						 * Apparently boolean and integer values in jsonArray are as strings, needs type conversion,
+						 * hence we deserialize it to List<ToDoItem> and encode it as JSON!
+					     * They get type casted automatically.
+					     */
+					   .end(Json.encode(jsonArray.getList()
+												 .stream()
+												 .map(element -> Json.decodeValue(element.toString(), ToDoItem.class))
+												 .collect(Collectors.toList()))
+					   )
+			)
 		);
 
 	}
@@ -180,10 +178,10 @@ public class ToDoVerticle extends AbstractVerticle {
 				client.flushdb(flushdbEvent -> {
 					if (flushdbEvent.succeeded() && flushdbEvent.result().equals("OK")) {
 						context.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code())
-								.end();
+							   .end();
 					} else {
 						context.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
-								.end();
+							   .end();
 						logError("FLUSH DB failed.", flushdbEvent.cause());
 					}
 				});
@@ -198,22 +196,20 @@ public class ToDoVerticle extends AbstractVerticle {
 	private void deleteToDo(RoutingContext context) {
 		String toDoId = context.request().getParam("id");
 		client.multi(multiEvent ->
-				client.lrem(KEYS, 1, toDoId, lremEvent ->
-						client.del(toDoId, event ->
-								client.exec(execEvent -> {
-									JsonArray result = execEvent.result();
-									if (execEvent.succeeded() && result.getInteger(0) == 1 && result.getInteger(1) == 1)
-										context.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code())
-												.end();
-									else {
-										context.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code())
-												.end();
-										logError("Todo for id: " + toDoId + " not found. Delete failed.", execEvent.cause());
+			client.lrem(KEYS, 1, toDoId, lremEvent ->
+				client.del(toDoId, event -> client.exec(execEvent -> {
+					JsonArray result = execEvent.result();
+					if (execEvent.succeeded() && result.getInteger(0) == 1 && result.getInteger(1) == 1)
+						context.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code())
+							   .end();
+					else {
+						context.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code())
+							   .end();
+						logError("Todo for id: " + toDoId + " not found. Delete failed.", execEvent.cause());
 
-									}
-								})
-						)
-				)
+					}
+				}))
+			)
 		);
 	}
 
@@ -232,12 +228,13 @@ public class ToDoVerticle extends AbstractVerticle {
 						if (hgetAllEvent.succeeded() && hgetAllEvent.result().size() > 0) {
 							ToDoItem toDo = Json.decodeValue(hgetAllEvent.result().toString(), ToDoItem.class);
 							context.response().setStatusCode(HttpResponseStatus.OK.code())
-									.putHeader("content-type", "application/json; charset=utf-8")
-									.end(Json.encode(toDo));
+								   .putHeader("content-type", "application/json; charset=utf-8")
+								   .end(Json.encode(toDo));
 						} else {
 							context.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code())
-									.end();
-							logError("Todo for id: " + toDoId + " not found. Retrieval after Update failed.", hgetAllEvent.cause());
+								   .end();
+							logError("Todo for id: " + toDoId + " not found. Retrieval after Update failed.",
+								hgetAllEvent.cause());
 
 						}
 					});
