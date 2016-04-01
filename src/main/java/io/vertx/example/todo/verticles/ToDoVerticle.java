@@ -138,11 +138,11 @@ public class ToDoVerticle extends AbstractVerticle {
 				context.response()
 					.setStatusCode(HttpResponseStatus.OK.code())
 					.putHeader("content-type", "application/json; charset=utf-8")
-						/*
-						 * Apparently boolean and integer values in jsonArray are as strings, needs type conversion,
-						 * hence we deserialize it to List<ToDoItem> and encode it as JSON!
-						 * They get type casted automatically.
-						 */
+					/*
+					 * Apparently boolean and integer values in jsonArray are as strings, needs type conversion,
+					 * hence we deserialize it to List<ToDoItem> and encode it as JSON!
+					 * They get type casted automatically.
+					 */
 					.end(Json.encode(jsonArray.getList()
 						.stream()
 						.map(element -> Json.decodeValue(element.toString(), ToDoItem.class))
@@ -206,7 +206,6 @@ public class ToDoVerticle extends AbstractVerticle {
 						context.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code())
 							.end();
 						logError("Todo for id: " + toDoId + " not found. Delete failed.", execEvent.cause());
-
 					}
 				}))
 			)
@@ -235,7 +234,6 @@ public class ToDoVerticle extends AbstractVerticle {
 								.end();
 							logError("Todo for id: " + toDoId + " not found. Retrieval after Update failed.",
 								hgetAllEvent.cause());
-
 						}
 					});
 				} else {
