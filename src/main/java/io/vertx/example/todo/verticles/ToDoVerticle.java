@@ -65,8 +65,8 @@ public class ToDoVerticle extends AbstractVerticle {
 		Integer port = Integer.getInteger("http.port");
 		port = (port == null) ? 8000 : port;
 		vertx.createHttpServer()
-			 .requestHandler(router::accept)
-			 .listen(port, System.getProperty("http.address", "0.0.0.0"));
+			.requestHandler(router::accept)
+			.listen(port, System.getProperty("http.address", "0.0.0.0"));
 	}
 
 
@@ -78,12 +78,12 @@ public class ToDoVerticle extends AbstractVerticle {
 			HttpMethod.DELETE, HttpMethod.PATCH, HttpMethod.OPTIONS, HttpMethod.PUT));
 
 		router.route(TODO_URL).handler(CorsHandler.create("*")
-												  .allowedMethods(toDoUrlMethodSet)
-												  .allowedHeader("Content-Type"));
+			.allowedMethods(toDoUrlMethodSet)
+			.allowedHeader("Content-Type"));
 
 		router.route(TODO_ID_URL).handler(CorsHandler.create("*")
-													 .allowedMethods(toDoIdUrlMethodSet)
-													 .allowedHeader("Content-Type"));
+			.allowedMethods(toDoIdUrlMethodSet)
+			.allowedHeader("Content-Type"));
 	}
 
 	/*
@@ -109,11 +109,11 @@ public class ToDoVerticle extends AbstractVerticle {
 							client.rpush(KEYS, index, rpushEvent -> client.exec(event -> {
 								if (event.succeeded())
 									response.setStatusCode(HttpResponseStatus.CREATED.code())
-											.putHeader("content-type", "application/json; charset=utf-8")
-											.end(Json.encode(item));
+										.putHeader("content-type", "application/json; charset=utf-8")
+										.end(Json.encode(item));
 								else {
 									response.setStatusCode(HttpResponseStatus.NO_CONTENT.code())
-											.end();
+										.end();
 									logError("Todo creation failed.", event.cause());
 								}
 							}))
@@ -121,7 +121,7 @@ public class ToDoVerticle extends AbstractVerticle {
 					);
 				} else {
 					response.setStatusCode(HttpResponseStatus.NO_CONTENT.code())
-							.end();
+						.end();
 				}
 			});
 		});
@@ -136,18 +136,18 @@ public class ToDoVerticle extends AbstractVerticle {
 		client.lrange(KEYS, 0, -1, lrangeEvent ->
 			RedisUtils.getHashes(client, lrangeEvent.result().getList(), jsonArray ->
 				context.response()
-					   .setStatusCode(HttpResponseStatus.OK.code())
-					   .putHeader("content-type", "application/json; charset=utf-8")
+					.setStatusCode(HttpResponseStatus.OK.code())
+					.putHeader("content-type", "application/json; charset=utf-8")
 						/*
 						 * Apparently boolean and integer values in jsonArray are as strings, needs type conversion,
 						 * hence we deserialize it to List<ToDoItem> and encode it as JSON!
 					     * They get type casted automatically.
 					     */
-					   .end(Json.encode(jsonArray.getList()
-												 .stream()
-												 .map(element -> Json.decodeValue(element.toString(), ToDoItem.class))
-												 .collect(Collectors.toList()))
-					   )
+					.end(Json.encode(jsonArray.getList()
+						.stream()
+						.map(element -> Json.decodeValue(element.toString(), ToDoItem.class))
+						.collect(Collectors.toList()))
+					)
 			)
 		);
 
@@ -161,11 +161,11 @@ public class ToDoVerticle extends AbstractVerticle {
 			if (event.succeeded() && event.result().size() > 0) {
 				ToDoItem toDoItem = Json.decodeValue(event.result().encode(), ToDoItem.class);
 				response.setStatusCode(HttpResponseStatus.OK.code())
-						.putHeader("content-type", "application/json; charset=utf-8")
-						.end(Json.encode(toDoItem));
+					.putHeader("content-type", "application/json; charset=utf-8")
+					.end(Json.encode(toDoItem));
 			} else {
 				response.setStatusCode(HttpResponseStatus.NOT_FOUND.code())
-						.end();
+					.end();
 				logError("Todo for id: " + toDoId + " not found. Read failed.", event.cause());
 			}
 		});
@@ -178,10 +178,10 @@ public class ToDoVerticle extends AbstractVerticle {
 				client.flushdb(flushdbEvent -> {
 					if (flushdbEvent.succeeded() && flushdbEvent.result().equals("OK")) {
 						context.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code())
-							   .end();
+							.end();
 					} else {
 						context.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
-							   .end();
+							.end();
 						logError("FLUSH DB failed.", flushdbEvent.cause());
 					}
 				});
@@ -201,10 +201,10 @@ public class ToDoVerticle extends AbstractVerticle {
 					JsonArray result = execEvent.result();
 					if (execEvent.succeeded() && result.getInteger(0) == 1 && result.getInteger(1) == 1)
 						context.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code())
-							   .end();
+							.end();
 					else {
 						context.response().setStatusCode(HttpResponseStatus.NOT_FOUND.code())
-							   .end();
+							.end();
 						logError("Todo for id: " + toDoId + " not found. Delete failed.", execEvent.cause());
 
 					}
@@ -228,11 +228,11 @@ public class ToDoVerticle extends AbstractVerticle {
 						if (hgetAllEvent.succeeded() && hgetAllEvent.result().size() > 0) {
 							ToDoItem toDo = Json.decodeValue(hgetAllEvent.result().toString(), ToDoItem.class);
 							context.response().setStatusCode(HttpResponseStatus.OK.code())
-								   .putHeader("content-type", "application/json; charset=utf-8")
-								   .end(Json.encode(toDo));
+								.putHeader("content-type", "application/json; charset=utf-8")
+								.end(Json.encode(toDo));
 						} else {
 							context.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code())
-								   .end();
+								.end();
 							logError("Todo for id: " + toDoId + " not found. Retrieval after Update failed.",
 								hgetAllEvent.cause());
 
