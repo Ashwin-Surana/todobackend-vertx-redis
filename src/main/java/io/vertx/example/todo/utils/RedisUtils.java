@@ -35,11 +35,11 @@ public class RedisUtils {
             }
         };
 
-        if(keys.size()>0){
-            client.hgetall(keys.get(0).toString(), getAll.apply(getAll, 1));
-
-        }else{
+        if (keys == null || keys.size() <= 0) {
             onComplete.handle(result);
+            return;
         }
+
+        client.hgetall(keys.get(0).toString(), getAll.apply(getAll, 1));
     }
 }
