@@ -141,8 +141,8 @@ public class ToDoVerticle extends AbstractVerticle {
 						/*
 						 * Apparently boolean and integer values in jsonArray are as strings, needs type conversion,
 						 * hence we deserialize it to List<ToDoItem> and encode it as JSON!
-					     * They get type casted automatically.
-					     */
+						 * They get type casted automatically.
+						 */
 					.end(Json.encode(jsonArray.getList()
 						.stream()
 						.map(element -> Json.decodeValue(element.toString(), ToDoItem.class))
