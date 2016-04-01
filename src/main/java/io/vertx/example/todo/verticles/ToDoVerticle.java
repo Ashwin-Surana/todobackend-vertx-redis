@@ -49,9 +49,7 @@ public class ToDoVerticle extends AbstractVerticle {
 	}
 
 	private void setRoutes() {
-		/*
-		 *  HttpMethod is defined for route and a handler is assigned
-         */
+		//HttpMethod is defined for route and a handler is assigned
 
 		router.get(TODO_URL).handler(this::getAllToDo);
 		router.delete(TODO_URL).handler(this::clearAllToDo);
@@ -96,43 +94,39 @@ public class ToDoVerticle extends AbstractVerticle {
 		HttpServerRequest req = context.request();
 		HttpServerResponse response = context.response();
 
-		req.bodyHandler(
-				buffer -> {
-					ToDoItem item = Json.decodeValue(buffer.getString(0, buffer.length()), ToDoItem.class);
-					item.setUrl(context.request().absoluteURI());
-
-					// Maintain and increment an index, and use it to uniquely identify a todo item
-					client.incr(INDEX, incrEvent -> {
-								if (incrEvent.succeeded()) {
-									String index = incrEvent.result().toString();
-									item.setUrl(item.getUrl() + "/" + index);
-									client.multi(multiEvent ->
-											//Insert the todoItem
-											client.hmset(index, ToDoItem.toJsonObject(item), hmsetEvent ->
-													//Maintain a list of index
-													client.rpush(KEYS, index, rpushEvent ->
-															client.exec(event -> {
-																if (event.succeeded())
-																	response.setStatusCode(HttpResponseStatus.CREATED.code())
-																			.putHeader("content-type", "application/json; charset=utf-8")
-																			.end(Json.encode(item));
-																else {
-																	response.setStatusCode(HttpResponseStatus.NO_CONTENT.code())
-																			.end();
-																	logError("Todo creation failed.", event.cause());
-																}
-															})
-													)
-											)
-									);
-								} else {
-									response.setStatusCode(HttpResponseStatus.NO_CONTENT.code())
-											.end();
-								}
-							}
+		req.bodyHandler(buffer -> {
+			ToDoItem item = Json.decodeValue(buffer.getString(0, buffer.length()), ToDoItem.class);
+			item.setUrl(context.request().absoluteURI());
+			// Maintain and increment an index, and use it to uniquely identify a todo item
+			client.incr(INDEX, incrEvent -> {
+				if (incrEvent.succeeded()) {
+					String index = incrEvent.result().toString();
+					item.setUrl(item.getUrl() + "/" + index);
+					client.multi(multiEvent ->
+							//Insert the todoItem
+							client.hmset(index, ToDoItem.toJsonObject(item), hmsetEvent ->
+									//Maintain a list of index
+									client.rpush(KEYS, index, rpushEvent ->
+											client.exec(event -> {
+												if (event.succeeded())
+													response.setStatusCode(HttpResponseStatus.CREATED.code())
+															.putHeader("content-type", "application/json; charset=utf-8")
+															.end(Json.encode(item));
+												else {
+													response.setStatusCode(HttpResponseStatus.NO_CONTENT.code())
+															.end();
+													logError("Todo creation failed.", event.cause());
+												}
+											})
+									)
+							)
 					);
+				} else {
+					response.setStatusCode(HttpResponseStatus.NO_CONTENT.code())
+							.end();
 				}
-		);
+			});
+		});
 	}
 
 
@@ -147,10 +141,10 @@ public class ToDoVerticle extends AbstractVerticle {
 								.setStatusCode(HttpResponseStatus.OK.code())
 								.putHeader("content-type", "application/json; charset=utf-8")
 								/*
-								  Apparently boolean and integer values in jsonArray are as strings, needs type conversion, hence we
-                                  deserialize it to List<ToDoItem> and encode it as JSON! They get type casted automatically.
-                                 */
-
+								 * Apparently boolean and integer values in jsonArray are as strings, needs type conversion,
+								 * hence we deserialize it to List<ToDoItem> and encode it as JSON!
+							     * They get type casted automatically.
+								 */
 								.end(Json.encode(jsonArray.getList()
 										.stream()
 										.map(element -> Json.decodeValue(element.toString(), ToDoItem.class))
