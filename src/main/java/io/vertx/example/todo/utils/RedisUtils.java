@@ -14,14 +14,14 @@ import java.util.function.BiFunction;
  */
 public class RedisUtils {
 
-    private interface  AsyncResultJsonObjectHandler extends Handler<AsyncResult<JsonObject>> {
+    private interface AsyncResultJsonObjectHandler extends Handler<AsyncResult<JsonObject>> {
 
     }
 
     /*
         A util function to retrieve hash for the given list of keys.
      */
-    public static void getHashes(RedisClient client, List<Object> keys, Handler<JsonArray> onComplete){
+    public static void getHashes(RedisClient client, List<Object> keys, Handler<JsonArray> onComplete) {
         JsonArray result = new JsonArray();
 
         // we retrieve hashes by hgetall for each key recursively
